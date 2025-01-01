@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import SQLModel, select
+import stripe.error
 from database import SessionDep
 from src.auth.domain.services import (
     authenticate_user,
@@ -15,7 +16,7 @@ from src.auth.domain.models import UserBaseModel, UserModel
 from src.auth.application.schemas import Token
 from fastapi import status
 from datetime import datetime, timedelta, timezone
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
+from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY,STRIPE_PUBLISHABLE_KEY,STRIPE_SECRET_KEY
 from src.auth.application.schemas import (
     UpdateUserModel,
     UserPublicModel,
@@ -28,18 +29,43 @@ from src.auth.dependencies import get_current_active_user
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database import engine, SessionDep
 from jwt.exceptions import InvalidTokenError
-
+import stripe
+from stripe import stripe
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
 
 allow_user_create_resource = RoleChecker(["superuser"])
 allow_user_delete_resource = RoleChecker(["superuser"])
-
+stripe.api_key = STRIPE_SECRET_KEY
 
 ######################
 ##### Routes #########
 ######################
+
+
+@router.post("/subscribe", status_code=status.HTTP_200_OK)
+async def subscribe_for_admin(
+    session: SessionDep,
+    current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],amount: float,
+):
+    try:
+        if (not current_user.is_superuser) and (not current_user.is_staff):
+            payment_intent = stripe.PaymentIntent.create(
+                amount=500,
+                currency="usd",
+                automatic_payment_methods={"enabled": True},
+                description=f"Payment made of {amount} cents by {current_user.first_name}"
+            )
+            print("##### Payment_Intent : #####" ,payment_intent)
+            return JSONResponse(content={
+                    "client_secret": payment_intent['client_secret'],
+                    "message": "Payment Intent created successfully. Use the client_secret to confirm the payment."
+                })
+    
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}")
 
 
 @router.post(
