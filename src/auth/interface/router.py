@@ -55,7 +55,7 @@ async def subscribe_for_admin(
             payment_intent = stripe.PaymentIntent.create(
                 amount=500,
                 currency="usd",
-                automatic_payment_methods={"enabled": True},
+                payment_method_types=["card"],
                 description=f"Payment made of {amount} cents by {current_user.first_name}"
             )
             print("##### Payment_Intent : #####" ,payment_intent)
@@ -66,6 +66,24 @@ async def subscribe_for_admin(
     
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}")
+
+@router.post("/confirm-payment/{username}")
+async def confirm_payment(session: SessionDep,username: str, payment_intent_id: str):
+    try:
+        payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        if payment_intent['status'] != "succeeded":
+            raise HTTPException(status_code=400, detail="Payment not completed. Please complete the payment.")
+
+        
+        user = session.get(UserModel, username)
+
+        user.is_staff = True
+        user.is_superuser = True
+
+        return JSONResponse(content={"message": "Payment confirmed. Role upgraded to admin for 5 minutes."})
+    
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=f"Failed to confirm payment: {e.user_message}")
 
 
 @router.post(
