@@ -115,7 +115,7 @@ async def list_users(
 async def crate_user(
     user: CreateUserModel,
     session: SessionDep,
-    dependencies=Depends(allow_user_create_resource),
+    # dependencies=Depends(allow_user_create_resource),
 ):
     """
     Function to create user based on the allowed roles

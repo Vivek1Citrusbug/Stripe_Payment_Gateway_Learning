@@ -9,7 +9,7 @@ from sqlmodel import Field,SQLModel
 class UserModel(UserBaseModel, table=True):
     username: str | None = Field(default=None, primary_key=True)    
     password: str
-    extra_secreate_field:int
+    # extra_secreate_field:int
 
 class AccessToken(SQLModel, table=True):  
     id: int = Field(default=None, primary_key=True)
