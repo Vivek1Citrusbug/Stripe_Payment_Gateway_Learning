@@ -1,0 +1,26 @@
+automatic doc
+provides async meethods
+provide default swagger ui
+based open api standards.
+code autocomplete feature 
+security and authentication 
+
+function name does not matter. decorator metters the most in fastapi.
+fast api read paths line by line so .
+
+to declare the request body we use pydantic mnodels for that.
+
+ctrl + shoft + p for debugging. 
+
+table=True tells SQLModel that this is a table model, it should represent a table in the SQL database, it's not just a data model (as would be any other regular Pydantic class).
+
+Field(primary_key=True) tells SQLModel that the id is the primary key in the SQL database (you can learn more about SQL primary keys in the SQLModel docs).
+
+By having the type as int | None, SQLModel will know that this column should be an INTEGER in the SQL database and that it should be NULLABLE.
+
+Field(index=True) tells SQLModel that it should create a SQL index for this column, that would allow faster lookups in the database when reading data filtered by this column.
+
+SQLModel will know that something declared as str will be a SQL column of type TEXT (or VARCHAR, depending on the database).
+
+#sessions
+A Session is what stores the objects in memory and keeps track of any changes needed in the data, then it uses the engine to communicate with the database.
