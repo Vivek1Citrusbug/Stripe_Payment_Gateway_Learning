@@ -24,3 +24,7 @@ SQLModel will know that something declared as str will be a SQL column of type T
 
 #sessions
 A Session is what stores the objects in memory and keeps track of any changes needed in the data, then it uses the engine to communicate with the database.
+
+
+
+adcsadas
