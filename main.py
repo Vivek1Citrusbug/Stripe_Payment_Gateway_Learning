@@ -3,6 +3,10 @@ from contextlib import asynccontextmanager
 from src.auth.dependencies import create_db_and_tables
 from src.auth.interface import router as auth_router
 from src.auth.middleware import ErrorMiddleware,http_exception_handler
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,3 +22,13 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(ErrorMiddleware)
 app.add_exception_handler(HTTPException,http_exception_handler)
 app.include_router(auth_router.router, prefix="/auth", tags=["Users"])
+
+app.mount("/static/", StaticFiles(directory="static"), name="static")
+
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# @app.get("/", response_class=HTMLResponse)
+# async def payment_page():
+#     html_content = Path("templates/checkout.html").read_text()
+#     return HTMLResponse(content=html_content)
