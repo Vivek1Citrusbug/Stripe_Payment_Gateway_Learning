@@ -16,7 +16,13 @@ from src.auth.domain.models import UserBaseModel, UserModel
 from src.auth.application.schemas import Token
 from fastapi import status
 from datetime import datetime, timedelta, timezone
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY,STRIPE_PUBLISHABLE_KEY,STRIPE_SECRET_KEY
+from config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
+    SECRET_KEY,
+    STRIPE_PUBLISHABLE_KEY,
+    STRIPE_SECRET_KEY,
+)
 from src.auth.application.schemas import (
     UpdateUserModel,
     UserPublicModel,
@@ -32,6 +38,9 @@ from jwt.exceptions import InvalidTokenError
 import stripe
 from stripe import stripe
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 
 router = APIRouter()
 
@@ -45,45 +54,67 @@ stripe.api_key = STRIPE_SECRET_KEY
 ######################
 
 
-@router.post("/subscribe", status_code=status.HTTP_200_OK)
+
+
+@router.get("/", response_class=HTMLResponse)
+async def payment_page():
+    html_content = Path("templates/checkout.html").read_text()
+    return HTMLResponse(content=html_content)
+
+
+@router.post("/subscribe/", status_code=status.HTTP_200_OK)
 async def subscribe_for_admin(
     session: SessionDep,
-    current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],amount: float,
+    # current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],
+    amount: float,
 ):
     try:
-        if (not current_user.is_superuser) and (not current_user.is_staff):
+        # if (not current_user.is_superuser) and (not current_user.is_staff):
             payment_intent = stripe.PaymentIntent.create(
                 amount=500,
                 currency="usd",
                 payment_method_types=["card"],
-                description=f"Payment made of {amount} cents by {current_user.first_name}"
+                description=f"Payment made of {amount} cents by ",
             )
-            print("##### Payment_Intent : #####" ,payment_intent)
-            return JSONResponse(content={
-                    "client_secret": payment_intent['client_secret'],
-                    "message": "Payment Intent created successfully. Use the client_secret to confirm the payment."
-                })
-    
+            print("##### Payment_Intent : #####", payment_intent)
+            return JSONResponse(
+                content={
+                    "client_secret": payment_intent["client_secret"],
+                    "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
+                }
+            )
+
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}"
+        )
+
 
 @router.post("/confirm-payment/{username}")
-async def confirm_payment(session: SessionDep,username: str, payment_intent_id: str):
+async def confirm_payment(session: SessionDep, username: str, payment_intent_id: str):
     try:
         payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        if payment_intent['status'] != "succeeded":
-            raise HTTPException(status_code=400, detail="Payment not completed. Please complete the payment.")
+        if payment_intent["status"] != "succeeded":
+            raise HTTPException(
+                status_code=400,
+                detail="Payment not completed. Please complete the payment.",
+            )
 
-        
         user = session.get(UserModel, username)
 
         user.is_staff = True
         user.is_superuser = True
 
-        return JSONResponse(content={"message": "Payment confirmed. Role upgraded to admin for 5 minutes."})
-    
+        return JSONResponse(
+            content={
+                "message": "Payment confirmed. Role upgraded to admin for 5 minutes."
+            }
+        )
+
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Failed to confirm payment: {e.user_message}")
+        raise HTTPException(
+            status_code=400, detail=f"Failed to confirm payment: {e.user_message}"
+        )
 
 
 @router.post(
@@ -112,13 +143,13 @@ async def login_for_access_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
-@router.get("/")
-async def index():
-    """
-    Landing page
-    """
+# @router.get("/")
+# async def index():
+#     """
+#     Landing page
+#     """
 
-    return "Landing page"
+#     return "Landing page"
 
 
 @router.get(
