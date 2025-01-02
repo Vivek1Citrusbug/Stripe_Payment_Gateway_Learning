@@ -47,6 +47,7 @@ router = APIRouter()
 
 allow_user_create_resource = RoleChecker(["superuser"])
 allow_user_delete_resource = RoleChecker(["superuser"])
+
 stripe.api_key = STRIPE_SECRET_KEY
 
 ######################
@@ -54,35 +55,32 @@ stripe.api_key = STRIPE_SECRET_KEY
 ######################
 
 
-
-
-@router.get("/", response_class=HTMLResponse)
-async def payment_page():
-    html_content = Path("templates/checkout.html").read_text()
-    return HTMLResponse(content=html_content)
+# @router.get("/", response_class=HTMLResponse)
+# async def payment_page():
+#     html_content = Path("templates/checkout.html").read_text()
+#     return HTMLResponse(content=html_content)
 
 
 @router.post("/subscribe/", status_code=status.HTTP_200_OK)
 async def subscribe_for_admin(
     session: SessionDep,
     # current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],
-    amount: float,
 ):
     try:
         # if (not current_user.is_superuser) and (not current_user.is_staff):
-            payment_intent = stripe.PaymentIntent.create(
-                amount=500,
-                currency="usd",
-                payment_method_types=["card"],
-                description=f"Payment made of {amount} cents by ",
-            )
-            print("##### Payment_Intent : #####", payment_intent)
-            return JSONResponse(
-                content={
-                    "client_secret": payment_intent["client_secret"],
-                    "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
-                }
-            )
+        payment_intent = stripe.PaymentIntent.create(
+            amount=500,
+            currency="usd",
+            payment_method_types=["card"],
+            description=f"Payment done",
+        )
+        print("##### Payment_Intent : #####", payment_intent)
+        return JSONResponse(
+            content={
+                "client_secret": payment_intent["client_secret"],
+                "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
+            }
+        )
 
     except stripe.error.StripeError as e:
         raise HTTPException(
@@ -115,6 +113,17 @@ async def confirm_payment(session: SessionDep, username: str, payment_intent_id:
         raise HTTPException(
             status_code=400, detail=f"Failed to confirm payment: {e.user_message}"
         )
+
+
+
+
+
+
+
+
+
+
+
 
 
 @router.post(
