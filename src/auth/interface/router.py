@@ -31,6 +31,7 @@ from src.auth.application.schemas import (
     Token,
     TokenData,
 )
+from src.auth.domain.models import UserBaseModel
 from src.auth.dependencies import get_current_active_user
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database import engine, SessionDep
@@ -61,58 +62,109 @@ stripe.api_key = STRIPE_SECRET_KEY
 #     return HTMLResponse(content=html_content)
 
 
-@router.post("/subscribe/", status_code=status.HTTP_200_OK)
-async def subscribe_for_admin(
-    session: SessionDep,
-    # current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],
-):
+@router.post('/create-checkout-session')
+async def checkout(amount:int, session: SessionDep):
+    if amount != 500: 
+        raise HTTPException(status_code=400, detail="Amount must be $5")
     try:
-        # if (not current_user.is_superuser) and (not current_user.is_staff):
-        payment_intent = stripe.PaymentIntent.create(
-            amount=500,
-            currency="usd",
+        session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            description=f"Payment done",
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": "Be Admin"
+                        },
+                        "unit_amount":amount,
+                    },
+                    "quantity": 1,
+                },
+            ],
+            mode="payment",
+            success_url="https://example.com/success",
+            cancel_url="https://example.com/failure",
         )
-        print("##### Payment_Intent : #####", payment_intent)
-        return JSONResponse(
-            content={
-                "client_secret": payment_intent["client_secret"],
-                "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
-            }
-        )
+        print(session)
 
-    except stripe.error.StripeError as e:
-        raise HTTPException(
-            status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}"
-        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating checkout session: {str(e)}")
 
-
-@router.post("/confirm-payment/{username}")
-async def confirm_payment(session: SessionDep, username: str, payment_intent_id: str):
-    try:
-        payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        if payment_intent["status"] != "succeeded":
-            raise HTTPException(
-                status_code=400,
-                detail="Payment not completed. Please complete the payment.",
-            )
-
-        user = session.get(UserModel, username)
-
+@router.get("/success/{session_id}")
+async def success(session_id: str, db_session: SessionDep,current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],):
+    session = stripe.checkout.Session.retrieve(session_id)
+    user = db_session.get(UserModel, current_user.username)
+    print(user,"Type : ")
+    if user:
         user.is_staff = True
         user.is_superuser = True
+        db_session.commit()
+        return {"message": "Payment successful, role upgraded to admin."}
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        return JSONResponse(
-            content={
-                "message": "Payment confirmed. Role upgraded to admin for 5 minutes."
-            }
-        )
 
-    except stripe.error.StripeError as e:
-        raise HTTPException(
-            status_code=400, detail=f"Failed to confirm payment: {e.user_message}"
-        )
+
+
+
+
+
+
+
+
+
+# @router.post("/subscribe/", status_code=status.HTTP_200_OK)
+# async def subscribe_for_admin(
+#     session: SessionDep,
+#     # current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],
+# ):
+#     try:
+#         # if (not current_user.is_superuser) and (not current_user.is_staff):
+#         payment_intent = stripe.PaymentIntent.create(
+#             amount=500,
+#             currency="usd",
+#             payment_method_types=["card"],
+#             description=f"Payment done",
+#         )
+#         print("##### Payment_Intent : #####", payment_intent)
+#         return JSONResponse(
+#             content={
+#                 "client_secret": payment_intent["client_secret"],
+#                 "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
+#             }
+#         )
+
+#     except stripe.error.StripeError as e:
+#         raise HTTPException(
+#             status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}"
+#         )
+
+
+# @router.post("/confirm-payment/{username}")
+# async def confirm_payment(session: SessionDep, username: str, payment_intent_id: str):
+#     try:
+#         payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+#         if payment_intent["status"] != "succeeded":
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail="Payment not completed. Please complete the payment.",
+#             )
+
+#         user = session.get(UserModel, username)
+
+#         user.is_staff = True
+#         user.is_superuser = True
+
+#         return JSONResponse(
+#             content={
+#                 "message": "Payment confirmed. Role upgraded to admin for 5 minutes."
+#             }
+#         )
+
+#     except stripe.error.StripeError as e:
+#         raise HTTPException(
+#             status_code=400, detail=f"Failed to confirm payment: {e.user_message}"
+#         )
 
 
 
