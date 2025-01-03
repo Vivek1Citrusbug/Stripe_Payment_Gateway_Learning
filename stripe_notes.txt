@@ -1,0 +1,41 @@
+########   stripe task   ########## 
+
+Current roles : 
+admin superuser user
+
+Stripe task : Role Management and Subscription Plan Enhancement
+
+Role Upgrade on Payment:
+       - $5 payment temporarily upgrades a normal user's role to admin for 5 minutes, granting full admin access.
+       - After 5 minutes, the role reverts to the original user role.
+Subscription Plan:
+       - Recurring payments are supported.
+       - On the 4th payment, users receive an advanced plan, extending the role upgrade to 10 minutes at no extra cost.
+       - Subsequent payments revert to the standard 5-minute upgrade.
+Webhook Integration:
+       - Webhooks trigger role updates upon payment.
+       - A scheduler ensures the role reverts after the designated time.
+
+Account, Charge, Customer, PaymentIntent, Refund, Subscription, and Transfer 
+
+we have to worknon strip checkout page.
+
+########   Readme for Stripe :  ########
+
+Checkout
+A prebuilt hosted payment page for quick integration.	
+
+Custom Payment Flows
+Build your payment forms using Stripe’s SDKs (JavaScript, Python, PHP, etc.).
+
+1. Payment Processing Flow
+Step 1: Create a Payment Intent
+Purpose: A Payment Intent represents the lifecycle of a payment and ensures compliance with regulations like 3D Secure (3DS).
+Use Case: This is used to prepare the payment process by specifying the amount, currency, and payment method.
+
+Step 2: Collect Payment Details
+Use Stripe Elements (a library of prebuilt UI components) or a custom form to securely collect payment information.
+
+In Stripe, a Charge object represents a payment processed by Stripe, typically associated with a credit or 
+debit card transaction. It provides detailed information about the payment, such as its status, 
+amount, and metadata, and is essential for handling payments directly using the Charges API.
