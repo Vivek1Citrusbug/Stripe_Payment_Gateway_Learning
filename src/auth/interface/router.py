@@ -81,7 +81,6 @@ async def stripe_webhook(
     ]:
         payment_obj = event["data"]["object"]
         customer_email = payment_obj.get("billing_details", {}).get("email")
-        print("####### payment object #######", payment_obj)
         if not customer_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -128,14 +127,14 @@ async def checkout(amount: int, session: SessionDep):
                 {
                     "price_data": {
                         "currency": "usd",
-                        "product_data": {"name": "Be Admin"},
+                        "product_data": {"name": "Be Admin"}, 
                         "unit_amount": amount,
                     },
                     "quantity": 1,
                 },
             ],
             mode="payment",
-            success_url="https://example.com/success",
+            success_url="https://example.com/success", ## Given this sample link for success and failure but we have to take this as environment variable.
             cancel_url="https://example.com/failure",
         )
         print(session)
@@ -163,60 +162,6 @@ async def success(
         raise HTTPException(status_code=404, detail="User not found")
 
 
-# @router.post("/subscribe/", status_code=status.HTTP_200_OK)
-# async def subscribe_for_admin(
-#     session: SessionDep,
-#     # current_user: Annotated[UserPublicModel, Depends(get_current_active_user)],
-# ):
-#     try:
-#         # if (not current_user.is_superuser) and (not current_user.is_staff):
-#         payment_intent = stripe.PaymentIntent.create(
-#             amount=500,
-#             currency="usd",
-#             payment_method_types=["card"],
-#             description=f"Payment done",
-#         )
-#         print("##### Payment_Intent : #####", payment_intent)
-#         return JSONResponse(
-#             content={
-#                 "client_secret": payment_intent["client_secret"],
-#                 "message": "Payment Intent created successfully. Use the client_secret to confirm the payment.",
-#             }
-#         )
-
-#     except stripe.error.StripeError as e:
-#         raise HTTPException(
-#             status_code=400, detail=f"Failed to create Payment Intent: {e.user_message}"
-#         )
-
-
-# @router.post("/confirm-payment/{username}")
-# async def confirm_payment(session: SessionDep, username: str, payment_intent_id: str):
-#     try:
-#         payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-#         if payment_intent["status"] != "succeeded":
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail="Payment not completed. Please complete the payment.",
-#             )
-
-#         user = session.get(UserModel, username)
-
-#         user.is_staff = True
-#         user.is_superuser = True
-
-#         return JSONResponse(
-#             content={
-#                 "message": "Payment confirmed. Role upgraded to admin for 5 minutes."
-#             }
-#         )
-
-#     except stripe.error.StripeError as e:
-#         raise HTTPException(
-#             status_code=400, detail=f"Failed to confirm payment: {e.user_message}"
-#         )
-
-
 @router.post(
     "/token",
     status_code=status.HTTP_201_CREATED,
@@ -241,16 +186,6 @@ async def login_for_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return Token(access_token=access_token, token_type="bearer")
-
-
-# @router.get("/")
-# async def index():
-#     """
-#     Landing page
-#     """
-
-#     return "Landing page"
-
 
 @router.get(
     "/users",
